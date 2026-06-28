@@ -26,6 +26,21 @@
         color: #00ff00;
         text-shadow: 2px 2px #ff00ff;
       }
+      .nav-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0 8px;
+      }
+      .nav-back {
+        color: #00ffff;
+        font-weight: bold;
+      }
+      .nav-www {
+        width: 100px;
+        height: 30px;
+        image-rendering: pixelated;
+      }
       .marquee {
         margin: 8px 0 14px;
         color: #ff66ff;
@@ -90,11 +105,27 @@
         text-transform: uppercase;
         box-shadow: 0 0 0 4px #00ffff;
       }
+      .webring {
+        margin-top: 18px;
+        text-align: center;
+        border: 3px dotted #ff00ff;
+        padding: 8px;
+        background: #000018;
+      }
+      .webring a {
+        color: #00ffff;
+        font-weight: bold;
+        margin: 0 12px;
+      }
     </style>
   </head>
   <body>
     <div class="page">
       <h1>TONSATZ GAMLA STAN VIDEO ZONE</h1>
+      <div class="nav-row">
+        <a class="nav-back" href="https://tonsatz.se">← Tillbaka till tonsatz.se</a>
+        <img class="nav-www" src="geocities-gifs/www.gif" alt="World Wide Web" />
+      </div>
       <marquee class="marquee" behavior="alternate" scrollamount="8">
         Tonsatz presenterar en interaktiv multimediapresentation av Gamla Stan Stockholm!
       </marquee>
@@ -170,6 +201,12 @@
         <p>You are visitor #000042</p>
         <p id="music-status" class="music-status">OPL-musik laddas...</p>
       </div>
+
+      <div class="webring">
+        <span>🌐 WEB-RING:</span>
+        <a href="https://runlevelzero.se" target="_blank" rel="noopener noreferrer">⬅ Vänster: runlevelzero.se</a>
+        <a href="https://tonsatz.se" target="_blank" rel="noopener noreferrer">Höger: tonsatz.se ➡</a>
+      </div>
     </div>
     <script src="opl-player/opl3.min.js"></script>
     <script>
@@ -182,6 +219,7 @@
       let musicStarted = false;
       let userInteracted = false;
       let musicWantedByUser = false;
+      let loopRestartPending = false;
 
       function anyVideoPlaying() {
         return videos.some((video) => !video.paused && !video.ended);
@@ -189,6 +227,12 @@
 
       function setStatus(text) {
         statusEl.textContent = text;
+      }
+
+      function updateMusicButton() {
+        musicToggleBtn.textContent = musicWantedByUser
+          ? "Stoppa pausmusik på sidan"
+          : "Spela pausmusik på sidan";
       }
 
       function pauseMusic() {
@@ -214,12 +258,6 @@
           } else {
             setStatus("OPL-musik kunde inte startas. Prova klicka igen.");
           }
-        }
-
-        function updateMusicButton() {
-          musicToggleBtn.textContent = musicWantedByUser
-            ? "Stoppa pausmusik på sidan"
-            : "Spela pausmusik på sidan";
         }
       }
 
@@ -289,6 +327,17 @@
           });
           oplPlayer.on("error", () => {
             setStatus("OPL-spelaren rapporterade ett fel.");
+          });
+          oplPlayer.on("position", (ms) => {
+            if (!musicWantedByUser || anyVideoPlaying() || loopRestartPending) return;
+            if (oplPlayer.length > 0 && ms >= oplPlayer.length - 50) {
+              loopRestartPending = true;
+              setTimeout(() => {
+                musicStarted = false;
+                loopRestartPending = false;
+                playMusicIfAllowed();
+              }, 20);
+            }
           });
           musicBuffer = trackBuffer;
           musicReady = true;
